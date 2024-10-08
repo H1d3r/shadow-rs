@@ -159,15 +159,15 @@ bcdedit /dbgsettings net hostip:<IP> port:<PORT>
 You can use [Service Control Manager](https://docs.microsoft.com/en-us/windows/win32/services/service-control-manager) or [OSR Driver Loader](https://www.osronline.com/article.cfm%5Earticle=157.htm) to load your driver.
 
 ## Contributing to shadow-rs
-To contribute to shadow-rs, follow these steps:
+To contribute to **shadow-rs**, follow these steps:
 
 1. Fork this repository.
-2. Create a branch: ```git checkout -b <branch_name>```.
-3. Make your changes and confirm them: ```git commit -m '<commit_message>'```.
-4. Send to the original branch: ```git push origin <project_name> / <local>```.
-5. Create the pull request.
+2. Create a branch: `git checkout -b <branch_name>`.
+3. Make your changes and commit them: `git commit -m '<commit_message>'`.
+4. Push your changes to your branch: `git push origin <branch_name>`.
+5. Create a pull request.
 
-Alternatively, consult the GitHub documentation on how to create a pull request.
+Alternatively, consult the [GitHub documentation](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests) on how to create a pull request.
 
 ## Credits / References
 
