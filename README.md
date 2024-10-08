@@ -24,7 +24,7 @@
   * [Debug via Windbg](#debug-via-windbg)
   * [Create/Start Service](#createstart-service)
 * [Contributing to shadow-rs](#contributing-to-shadow-rs)
-* [Credits / References](#credits--references)
+* [References](#references)
 * [License](#license)
 
 ## Legal Notice
