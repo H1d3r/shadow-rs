@@ -169,7 +169,7 @@ To contribute to **shadow-rs**, follow these steps:
 
 Alternatively, consult the [GitHub documentation](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests) on how to create a pull request.
 
-## Credits / References
+## References
 
 - https://leanpub.com/windowskernelprogrammingsecondedition
 - https://www.youtube.com/watch?v=t7Rx3crobZU&pp=ugMICgJwdBABGAHKBRBibGFja2hhdCByb290a2l0
