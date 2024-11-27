@@ -93,23 +93,23 @@ To build the project, ensure you have the Rust toolchain installed.
 
 #### Driver
 To build the driver, first go to the `driver` folder and then run the following command (When you do the first build you have to be as administrator, but after that you won't need to):
-```powershell
+```cmd
 cargo make default --release
 ```
 
 This driver can be mapped using `kdmapper` among other exploit tools, for example, to put mapping support, use the command:
-```powershell
+```cmd
 cargo make default --release --features mapper
 ```
 
 #### Client
 To build the client, first go into the `client` folder, then run the following command:
-```powershell
+```cmd
 cargo build --release
 ```
 
 Since some features of the rootkit are not supported due to the controller mapping, use the following command to build the client with only the commands that can be executed with the mapping:
-```powershell
+```cmd
 cargo build --release --features mapper
 ```
 
@@ -117,13 +117,13 @@ cargo build --release --features mapper
 
 #### Enable Test Mode or Test Signing Mode 
 
-```powershell
+```cmd
 bcdedit /set testsigning on
 ```
 
 #### [Optional] Debug via Windbg
 
-```powershell
+```cmd
 bcdedit /debug on
 bcdedit /dbgsettings net hostip:<IP> port:<PORT>
 ```
