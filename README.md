@@ -74,10 +74,9 @@ The documentation on how to execute CLI commands can be found on the [**Wiki**](
 - ✅ Key and Values (Hide / Unhide)
 - ✅ Registry Protection (Anti-Deletion and Overwriting)
 
-### Injection
-- ✅ Shellcode Injection (ZwCreateThreadEx)
-- ✅ DLL Injection (ZwCreateThreadEx)
-- ✅ APC Injection - Shellcode
+### User Mode Code Execution
+- ✅ Injection via ZwCreateThreadEx (Shellcode / DLL)
+- ✅ APC Injection (Shellcode)
 
 
 ## Installation
