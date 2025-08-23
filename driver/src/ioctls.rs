@@ -19,7 +19,7 @@ use common::{
 use shadowx::registry::Type;
 use shadowx::{
     Process, Thread, 
-    Network, network
+    Network, network,
 };
 use shadowx::{
     PROCESS_INFO_HIDE, 
