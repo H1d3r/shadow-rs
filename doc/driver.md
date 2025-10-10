@@ -1,4 +1,4 @@
-# Hide Driver
+## Hide Driver
 
 Description:
 This command allows you to hide a specific driver on the system.
@@ -18,7 +18,7 @@ shadow.exe driver hide --name example.sys
 
 This command will hide the driver named `example.sys`.
 
-# Enumerate Driver
+## Enumerate Driver
 
 Description: 
 This command lists all drivers currently loaded in the system.

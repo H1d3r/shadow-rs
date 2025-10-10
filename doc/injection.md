@@ -1,4 +1,4 @@
-# Shellcode
+## Shellcode
 
 Description:
 This command injects shellcode into a specific process.
@@ -21,7 +21,7 @@ shadow.exe injection shellcode --pid 5678 --path C:\Path\To\Shellcode.bin -t thr
 
 This command injects shellcode from `C:\Path\To\Shellcode.bin` into the process with PID `5678` using the thread injection method.
 
-# DLL
+## DLL
 
 Description: 
 This command injects a DLL into a specific process.

@@ -1,4 +1,4 @@
-# Hide / Unhide Process
+## Hide / Unhide Process
 
 Description:
 This command allows you to hide or reveal specific processes on the system.

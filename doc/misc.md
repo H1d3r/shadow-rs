@@ -1,4 +1,4 @@
-# DSE (Driver Signature Enforcement)
+## DSE (Driver Signature Enforcement)
 
 Description: Enable or disable Driver Signature Enforcement.
 
@@ -17,7 +17,7 @@ shadow-rs.exe misc dse --disable
 
 This command disables Driver Signature Enforcement.
 
-# ETWTI
+## ETWTI
 
 Description: Enable or disable ETWTI.
 ```powershell

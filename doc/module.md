@@ -1,4 +1,4 @@
-# Hide Module
+## Hide Module
 
 Description: This command allows you to hide a specific module in the system.
 ```powershell
