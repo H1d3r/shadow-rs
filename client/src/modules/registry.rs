@@ -12,28 +12,13 @@ use common::structs::TargetRegistry;
 pub struct Registry(HANDLE);
 
 impl Registry {
-    /// Creates a new `Registry` instance, opening a handle to the driver.
-    ///
-    /// # Returns
-    ///
-    /// * An instance of `Registry`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the driver cannot be opened.
+    /// Creates a new `Registry`.
     pub fn new() -> Self {
         let h_driver = open_driver().expect("Error");
         Self(h_driver)
     }
 
     /// Enables or disables protection for a specified registry key and value.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the protection operation.
-    /// * `value` - A reference to the registry value name to protect.
-    /// * `key` - A reference to the registry key name to protect.
-    /// * `enable` - `true` to enable protection or `false` to disable it.
     pub fn registry_protection(self, ioctl_code: u32, value: &String, key: &String, enable: bool) {
         info!("Attempting to open the registry for protection operation");
         debug!("Preparing structure for Key: {key} | Value: {value} | Protection: {}", if enable { "hide" } else { "unhide" });
@@ -66,13 +51,6 @@ impl Registry {
     }
 
     /// Hides or unhides a specified registry key and value.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the hide/unhide operation.
-    /// * `value` - A reference to the registry value name to hide/unhide.
-    /// * `key` - A reference to the registry key name to hide/unhide.
-    /// * `enable` - `true` to hide or `false` to unhide.
     pub fn registry_hide_unhide(self, ioctl_code: u32, value: &String, key: &String, enable: bool) {
         info!("Attempting to open the registry for hide/unhide operation");
 
@@ -108,7 +86,6 @@ impl Registry {
 }
 
 impl Drop for Registry {
-    /// Ensures the driver handle is closed when `Registry` goes out of scope.
     fn drop(&mut self) {
         debug!("Closing the driver handle");
         unsafe { CloseHandle(self.0) };

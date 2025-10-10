@@ -1,6 +1,6 @@
 [workspace]
-members = ["shadowx"]
-exclude = ["driver", "client", "common"]
+members = ["crates/shadow-core"]
+exclude = ["driver", "client", "crates/common"]
 resolver = "2"
 
 [profile.dev]

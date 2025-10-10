@@ -12,11 +12,7 @@ use crate::{utils::open_driver, utils::Callbacks};
 pub struct Callback(HANDLE);
 
 impl Callback {
-    /// Creates a new `Callback` instance, opening a handle to the driver.
-    ///
-    /// # Returns
-    ///
-    /// * An instance of `Callback`.
+    /// Creates a new `Callback`.
     ///
     /// # Panics
     ///
@@ -27,11 +23,6 @@ impl Callback {
     }
 
     /// Enumerates all callbacks associated with a specified callback type.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the enumeration operation.
-    /// * `callback` - Reference to the `Callbacks` struct, defining the type of callback to enumerate.
     pub fn enumerate_callback(self, ioctl_code: u32, callback: &Callbacks) {
         debug!("Attempting to open the driver for callback enumeration");
         debug!("Allocating memory for callback information");
@@ -95,12 +86,6 @@ impl Callback {
     }
 
     /// Removes a callback at the specified index.
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - The index of the callback to remove.
-    /// * `ioctl_code` - The IOCTL code for the remove operation.
-    /// * `callback` - Reference to the `Callbacks` struct, defining the type of callback.
     pub fn remove_callback(self, index: usize, ioctl_code: u32, callback: &Callbacks) {
         debug!("Attempting to open the driver to remove callback at index: {index}");
         debug!("Preparing structure to remove callback at index: {}", index);
@@ -132,12 +117,6 @@ impl Callback {
     }
 
     /// Restores a callback at the specified index.
-    ///
-    /// # Arguments
-    ///
-    /// * `index` - The index of the callback to restore.
-    /// * `ioctl_code` - The IOCTL code for the restore operation.
-    /// * `callback` - Reference to the `Callbacks` struct, defining the type of callback.
     pub fn restore_callback(self, index: usize, ioctl_code: u32, callback: &Callbacks) {
         debug!("Attempting to open the driver to restore callback at index: {index}");
 
@@ -171,7 +150,6 @@ impl Callback {
 }
 
 impl Drop for Callback {
-    /// Ensures the driver handle is closed when `Callback` goes out of scope.
     fn drop(&mut self) {
         debug!("Closing the driver handle");
         unsafe { CloseHandle(self.0) };

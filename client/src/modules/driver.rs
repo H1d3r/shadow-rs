@@ -12,27 +12,13 @@ use crate::utils::open_driver;
 pub struct Driver(HANDLE);
 
 impl Driver {
-    /// Creates a new `Driver` instance, opening a handle to the driver.
-    ///
-    /// # Returns
-    ///
-    /// * An instance of `Driver`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the driver cannot be opened.
+    /// Creates a new `Driver`.
     pub fn new() -> Self {
         let h_driver = open_driver().expect("Error");
         Self(h_driver)
     }
 
     /// Hides or unhides a driver based on its name.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the hide/unhide operation.
-    /// * `name` - The name of the driver to hide or unhide.
-    /// * `enable` - `true` to hide or `false` to unhide the driver.
     pub fn unhide_hide_driver(self, ioctl_code: u32, name: &String, enable: bool) {
         debug!("Attempting to open the driver for {} operation", if enable { "hide" } else { "unhide" });
         debug!("Preparing structure for: {}", name);
@@ -65,12 +51,6 @@ impl Driver {
     }
 
     /// Blocks or unblocks a driver by sending an `IOCTL` request.
-    ///
-    /// # Arguments
-    /// 
-    /// - `ioctl_code` - The `IOCTL` control code for the operation.
-    /// - `name` - The name of the driver to block or unblock.
-    /// - `enable` - `true` to block the driver, `false` to unblock.
     pub fn block_driver(self, ioctl_code: u32, name: &String, enable: bool) {
         debug!("Preparing structure for: {}", name);
         let mut info_driver = TargetDriver {
@@ -102,10 +82,6 @@ impl Driver {
     }
 
     /// Enumerates all drivers, retrieving information about each one.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the enumeration operation.
     pub fn enumerate_driver(self, ioctl_code: u32) {
         debug!("Attempting to open the driver for enumeration");
         debug!("Allocating memory for driver info");
@@ -154,7 +130,6 @@ impl Driver {
 }
 
 impl Drop for Driver {
-    /// Ensures the driver handle is closed when `Driver` goes out of scope.
     fn drop(&mut self) {
         debug!("Closing the driver handle");
         unsafe { CloseHandle(self.0) };

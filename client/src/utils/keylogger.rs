@@ -28,7 +28,7 @@ pub fn update_key_state() {
 ///
 /// # Returns
 ///
-/// * `bool` - if the key was pressed, otherwise `false`.
+/// If the key was pressed, otherwise `false`.
 pub fn key_pressed(key: u8) -> bool {
     unsafe {
         let result = is_key_down!(KEY_RECENT, key);
@@ -45,7 +45,7 @@ pub fn key_pressed(key: u8) -> bool {
 ///
 /// # Returns
 ///
-/// * A string representing the character corresponding to the code of the virtual key.
+/// A string representing the character corresponding to the code of the virtual key.
 pub fn vk_to_char(key: u8) -> &'static str {
     for &(vk, char) in &VK_CHARS {
         if vk == key {

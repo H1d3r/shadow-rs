@@ -19,7 +19,7 @@ unsafe impl GlobalAlloc for KernelAlloc {
     /// This function leverages the `ExAllocatePool2` function from the WDK to
     /// provide memory allocation capabilities.
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// * `layout` - Memory layout specifications.
     ///
@@ -40,7 +40,7 @@ unsafe impl GlobalAlloc for KernelAlloc {
     /// This function leverages the `ExFreePool` function from the WDK to
     /// release the memory back to the system.
     ///
-    /// # Parameters
+    /// # Arguments
     ///
     /// * `ptr` - Raw pointer to the memory block to be released.
     /// * `_layout` - Memory layout specifications (not used in this implementation).

@@ -12,27 +12,13 @@ use crate::utils::{open_driver, Options};
 pub struct Thread(HANDLE);
 
 impl Thread {
-    /// Creates a new `Thread` instance, opening a handle to the driver.
-    ///
-    /// # Returns
-    ///
-    /// * An instance of `Thread`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the driver cannot be opened.
+    /// Creates a new `Thread`.
     pub fn new() -> Self {
         let h_driver = open_driver().expect("Error");
         Self(h_driver)
     }
 
     /// Hides or unhides a thread specified by `tid`.
-    ///
-    /// # Arguments
-    ///
-    /// * `tid` - An optional reference to the TID (Thread ID) of the thread to hide/unhide.
-    /// * `ioctl_code` - The IOCTL code for the hide/unhide operation.
-    /// * `enable` - A boolean indicating whether to hide (`true`) or unhide (`false`) the thread.
     pub fn hide_unhide_thread(self, tid: Option<&u32>, ioctl_code: u32, enable: bool) {
         debug!("Attempting to open the driver for hide/unhide operation");
         if let Some(tid_value) = tid {
@@ -70,12 +56,6 @@ impl Thread {
     }
 
     /// Protects or unprotects a thread specified by `tid` (Anti-kill and dumping protection).
-    ///
-    /// # Arguments
-    ///
-    /// * `tid` - An optional reference to the TID (Thread ID) of the thread to protect/unprotect.
-    /// * `ioctl_code` - The IOCTL code for the protection operation.
-    /// * `enable` - A boolean indicating whether to enable (`true`) or disable (`false`) protection.
     #[cfg(not(feature = "mapper"))]
     pub fn protection_thread(self, tid: Option<&u32>, ioctl_code: u32, enable: bool) {
         debug!("Attempting to open the driver for thread protection operation");
@@ -114,11 +94,6 @@ impl Thread {
     }
 
     /// Enumerates all threads and retrieves information about them.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the enumeration operation.
-    /// * `option` - Reference to `Options` struct specifying options for the enumeration.
     pub fn enumerate_thread(self, ioctl_code: u32, option: &Options) {
         debug!("Attempting to open the driver for thread enumeration");
         let mut info_thread: [TargetThread; 100] = unsafe { std::mem::zeroed() };
@@ -157,7 +132,6 @@ impl Thread {
 }
 
 impl Drop for Thread {
-    /// Ensures the driver handle is closed when `Thread` goes out of scope.
     fn drop(&mut self) {
         debug!("Closing the driver handle");
         unsafe { CloseHandle(self.0) };

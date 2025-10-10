@@ -12,27 +12,13 @@ use crate::{utils::check_file, utils::open_driver};
 pub struct Injection(HANDLE);
 
 impl Injection {
-    /// Creates a new [`Injection`] instance, opening a handle to the driver.
-    ///
-    /// # Returns
-    ///
-    /// * An instance of [`Injection`].
-    ///
-    /// # Panics
-    ///
-    /// Panics if the driver cannot be opened.
+    /// Creates a new `Injection`
     pub fn new() -> Self {
         let h_driver = open_driver().expect("Error");
         Self(h_driver)
     }
 
     /// Injects code into a process's thread specified by `pid` using a file at `path`.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the thread injection operation.
-    /// * `pid` - A reference to the PID of the target process.
-    /// * `path` - The file path of the code to inject.
     pub fn injection(self, ioctl_code: u32, pid: &u32, path: &String) {
         info!("Starting process injection for PID: {pid}, using file: {path}");
         info!("Checking if the file exists at the specified path");
@@ -72,7 +58,6 @@ impl Injection {
 }
 
 impl Drop for Injection {
-    /// Ensures the driver handle is closed when `Injection` goes out of scope.
     fn drop(&mut self) {
         debug!("Closing the driver handle");
         unsafe { CloseHandle(self.0) };

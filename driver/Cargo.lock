@@ -598,7 +598,7 @@ dependencies = [
  "kernel-log",
  "log",
  "obfstr",
- "shadowx",
+ "shadow-core",
  "spin",
  "wdk",
  "wdk-build",
@@ -607,7 +607,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "shadowx"
+name = "shadow-core"
 version = "0.1.0"
 dependencies = [
  "bitfield",

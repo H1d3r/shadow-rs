@@ -5,7 +5,7 @@
 extern crate alloc;
 extern crate wdk_panic;
 
-mod utils;
+mod util;
 mod ioctls;
 mod allocator;
 
@@ -14,7 +14,7 @@ mod callback;
 
 use core::sync::atomic::Ordering;
 use spin::{Mutex, lazy::Lazy};
-use shadowx::{uni, error::ShadowError, network, Network};
+use shadow_core::{uni, error::ShadowError, network, Network};
 use wdk_sys::{*, ntddk::*, _MODE::KernelMode};
 
 #[cfg(not(feature = "mapper"))]
@@ -29,9 +29,14 @@ const DEVICE_NAME: &str = "\\Device\\shadow";
 /// The name of the device in the DOS device namespace.
 const DOS_DEVICE_NAME: &str = "\\DosDevices\\shadow";
 
+// Global instance of the `IoctlManager`.
+static mut MANAGER: Lazy<Mutex<ioctls::IoctlManager>> = Lazy::new(|| { 
+    let manager = Mutex::new(ioctls::IoctlManager::default());
+    manager.lock().load_handlers();
+    manager
+});
+
 /// Driver input function.
-///
-/// This function is called by the system when the driver is loaded.
 ///
 /// # Arguments
 /// 
@@ -40,7 +45,7 @@ const DOS_DEVICE_NAME: &str = "\\DosDevices\\shadow";
 ///
 /// # Returns
 /// 
-/// * Status code indicating the success or failure of the operation.
+/// Status code indicating the success or failure of the operation.
 ///
 /// Reference: WDF expects a symbol with the name DriverEntry
 #[export_name = "DriverEntry"]
@@ -70,9 +75,6 @@ pub unsafe extern "system" fn driver_entry(
 
 /// Driver input function.
 ///
-/// This function is called by the system when the driver is loaded. It is responsible for
-/// initializing the driver, creating the device object and setting up the symbolic link.
-///
 /// # Arguments
 /// 
 /// * `driver_object` - Pointer to the driver object.
@@ -80,7 +82,7 @@ pub unsafe extern "system" fn driver_entry(
 ///
 /// # Returns
 /// 
-/// * Status code indicating the success or failure of the operation. 
+/// Status code indicating the success or failure of the operation. 
 pub unsafe extern "system" fn shadow_entry(
     driver: &mut DRIVER_OBJECT,
     _registry_path: PCUNICODE_STRING,
@@ -140,28 +142,16 @@ pub unsafe extern "system" fn shadow_entry(
     STATUS_SUCCESS
 }
 
-// Global instance of the `IoctlManager`.
-//
-// This `lazy_static` ensures that the `IoctlManager` is initialized only once
-// and provides a thread-safe way to access the registered IOCTL handlers.
-static mut MANAGER: Lazy<Mutex<ioctls::IoctlManager>> = Lazy::new(|| { 
-    let manager = Mutex::new(ioctls::IoctlManager::default());
-    manager.lock().load_handlers();
-    manager
-});
-
 /// Handles device control commands (IOCTL).
-///
-/// This function is responsible for processing IOCTL commands received by the driver and executing the corresponding actions.
 ///
 /// # Arguments
 /// 
-/// * `_device` - Pointer to the device object (not used in this function).
-/// * `irp` - Pointer to the I/O request packet (IRP) that contains the information about the device control request.
+/// * `_device` - Pointer to the device object.
+/// * `irp` - Pointer to the I/O request packet (IRP).
 ///
 /// # Returns
 /// 
-/// * Status code indicating the success or failure of the operation.
+/// Status code indicating the success or failure of the operation.
 pub unsafe extern "C" fn device_control(_device: *mut DEVICE_OBJECT, irp: *mut IRP) -> NTSTATUS {
     let stack = (*irp).Tail.Overlay.__bindgen_anon_2.__bindgen_anon_1.CurrentStackLocation;
     let control_code = (*stack).Parameters.DeviceIoControl.IoControlCode;
@@ -188,9 +178,6 @@ pub unsafe extern "C" fn device_control(_device: *mut DEVICE_OBJECT, irp: *mut I
 
 /// Closes an open instance of the device.
 ///
-/// This function is called when an open instance of the device is closed.
-/// It marks the I/O request (IRP) as successfully completed.
-///
 /// # Arguments
 /// 
 /// * `_device_object` - Pointer to the associated device object (not used in this function).
@@ -198,7 +185,7 @@ pub unsafe extern "C" fn device_control(_device: *mut DEVICE_OBJECT, irp: *mut I
 ///
 /// # Returns
 /// 
-/// * Status code indicating the success of the operation (always returns `STATUS_SUCCESS`).
+/// Status code indicating the success of the operation (always returns `STATUS_SUCCESS`).
 pub unsafe extern "C" fn driver_close(_device_object: *mut DEVICE_OBJECT, irp: *mut IRP) -> NTSTATUS {
     (*irp).IoStatus.__bindgen_anon_1.Status = STATUS_SUCCESS;
     (*irp).IoStatus.Information = 0;
@@ -207,10 +194,7 @@ pub unsafe extern "C" fn driver_close(_device_object: *mut DEVICE_OBJECT, irp: *
     STATUS_SUCCESS
 }
 
-/// Download the system driver.
-///
-/// This function is called when the driver is being unloaded from the system.
-/// It removes the symbolic link and deletes the device object associated with the driver.
+/// Unload the system driver.
 ///
 /// # Arguments
 /// 

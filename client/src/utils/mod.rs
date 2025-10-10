@@ -39,7 +39,7 @@ pub const BANNER: &str = r#"
 ///
 /// # Returns
 ///
-/// * `true` if the file exists, `false` otherwise.
+/// If the file exists.
 pub fn check_file(file: &String) -> bool {
     let file = Path::new(file);
     file.exists()
@@ -49,8 +49,7 @@ pub fn check_file(file: &String) -> bool {
 ///
 /// # Returns
 ///
-/// * `Ok(HANDLE)` - if the driver handle is successfully opened.
-/// * `Err(())` - if there is an error.
+/// If the driver handle is successfully opened.
 pub fn open_driver() -> Result<HANDLE, &'static str> {
     log::info!("Opening driver handle");
 
@@ -79,7 +78,7 @@ pub fn open_driver() -> Result<HANDLE, &'static str> {
 ///
 /// # Arguments
 ///
-/// * `verbose` - A `u8` representing the verbosity level.
+/// The verbosity level.
 pub fn init_logger(verbose: u8) {
     let mut builder = Builder::new();
     let log_level = match verbose {
@@ -112,8 +111,7 @@ pub fn init_logger(verbose: u8) {
 ///
 /// # Returns
 ///
-/// * `Ok(String)` - if the file has a `.sys` extension.
-/// * `Err(String)` - if the file does not have a `.sys` extension.
+/// If the file has a `.sys` extension.
 pub fn validate_sys_extension(val: &str) -> Result<String, String> {
     if val.ends_with(".sys") {
         Ok(val.to_string())
@@ -130,8 +128,7 @@ pub fn validate_sys_extension(val: &str) -> Result<String, String> {
 ///
 /// # Returns
 ///
-/// * `Some(u32)` - Returns the PID of the process found.
-/// * `None` - if no process with the specified name is found.
+/// The PID of the process found.
 pub fn get_process_by_name(name: &str) -> Option<u32> {
     let mut system = System::new_all();
     system.refresh_all();
@@ -172,7 +169,7 @@ impl Callbacks {
     ///
     /// # Returns
     ///
-    /// * A `common::enums::Callbacks` variant corresponding to the selected callback.
+    /// Variant corresponding to the selected callback.
     pub fn to_shared(self) -> common::enums::Callbacks {
         match self {
             Callbacks::Process => common::enums::Callbacks::PsSetCreateProcessNotifyRoutine,
@@ -190,6 +187,7 @@ impl Callbacks {
 pub enum Options {
     /// Option to hide targets.
     Hide,
+
     /// Option to protect targets (disabled if the `mapper` feature is enabled).
     #[cfg(not(feature = "mapper"))]
     Protection,
@@ -200,7 +198,7 @@ impl Options {
     ///
     /// # Returns
     ///
-    /// * A `common::enums::Options` variant corresponding to the selected option.
+    /// Variant corresponding to the selected option.
     pub fn to_shared(self) -> common::enums::Options {
         match self {
             Options::Hide => common::enums::Options::Hide,
@@ -225,7 +223,7 @@ impl Protocol {
     ///
     /// # Returns
     ///
-    /// * A `common::enums::Protocol` variant corresponding to the selected protocol.
+    /// Variant corresponding to the selected protocol.
     pub fn to_shared(self) -> common::enums::Protocol {
         match self {
             Protocol::TCP => common::enums::Protocol::TCP,
@@ -249,7 +247,7 @@ impl PortType {
     ///
     /// # Returns
     ///
-    /// * A `common::enums::PortType` variant corresponding to the selected port type.
+    /// Variant corresponding to the selected port type.
     pub fn to_shared(self) -> common::enums::PortType {
         match self {
             PortType::LOCAL => common::enums::PortType::LOCAL,
