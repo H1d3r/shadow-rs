@@ -12,10 +12,6 @@
 
 `shadow-rs` is a Windows kernel rootkit written in Rust, demonstrating advanced techniques for kernel manipulation while leveraging Rust’s safety and performance features. This project is intended for educational and research purposes.
 
-The project also provides useful crates for developing rootkits, such as [**shadowx**](/shadowx/), which consolidates core logic and essential techniques. It includes rootkit-specific tricks, with plans for additional features in future updates.
-
-The documentation on how to execute CLI commands can be found on the [**Wiki**](https://github.com/joaoviictorti/shadow-rs/wiki)
-
 ## Table of Contents
 
 * [Notice](#legal-notice)
