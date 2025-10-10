@@ -3,17 +3,24 @@ use alloc::vec::Vec;
 use common::structs::TargetProcess;
 use log::{error, info};
 use spin::{Lazy, Mutex};
-use wdk_sys::ntddk::{
-    ObfDereferenceObject, PsLookupProcessByProcessId, ZwClose, ZwOpenProcess, ZwTerminateProcess,
-};
 use wdk_sys::*;
+use wdk_sys::ntddk::{
+    ObfDereferenceObject, 
+    PsLookupProcessByProcessId, 
+    ZwClose, 
+    ZwOpenProcess, 
+    ZwTerminateProcess,
+};
 
+use crate::PROCESS_SIGNATURE;
 use crate::error::{ShadowError, ShadowResult};
 use crate::lock::with_push_lock_exclusive;
 use crate::offsets::{
-    get_active_process_link_offset, get_process_lock, get_signature_offset, get_token_offset,
+    get_active_process_link_offset, 
+    get_process_lock, 
+    get_signature_offset, 
+    get_token_offset,
 };
-use crate::PROCESS_SIGNATURE;
 
 // Max Number PIDs
 const MAX_PID: usize = 100;

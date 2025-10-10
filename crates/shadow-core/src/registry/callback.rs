@@ -8,14 +8,18 @@ use wdk_sys::ntddk::*;
 use wdk_sys::_REG_NOTIFY_CLASS::*;
 use wdk_sys::{_MODE::KernelMode, *};
 
-use super::utils::{check_key_value, enumerate_value_key, RegistryInfo};
 use super::*;
+use super::utils::{
+    check_key_value, 
+    enumerate_value_key, 
+    RegistryInfo
+};
 use crate::{
+    utils::{pool::PoolMemory, valid_kernel_memory},
     registry::{
         utils::{check_key, enumerate_key},
         Registry,
     },
-    utils::{pool::PoolMemory, valid_kernel_memory},
 };
 
 /// Handle for Registry Callback.

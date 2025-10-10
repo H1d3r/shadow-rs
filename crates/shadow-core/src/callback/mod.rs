@@ -2,7 +2,10 @@ use common::enums::Callbacks;
 use obfstr::obfstr as s;
 use wdk_sys::{ntddk::MmGetSystemRoutineAddress, PsProcessType, PsThreadType};
 
-use crate::utils::{patterns::scan_for_pattern, uni::str_to_unicode};
+use crate::utils::{
+    patterns::scan_for_pattern, 
+    uni::str_to_unicode
+};
 use crate::{
     data::FULL_OBJECT_TYPE,
     error::{ShadowError, ShadowResult},

@@ -8,23 +8,16 @@
 
 extern crate alloc;
 
-/// Port communication utilities.
 pub mod network;
-
-/// Error handling utilities.
 pub mod error;
-
-/// Registry manipulation utilities.
 pub mod registry;
-
-/// Kernel callback management.
 pub mod callback;
+pub mod module;
+pub mod misc;
+pub mod driver;
+pub mod injection;
 
 mod data;
-mod driver;
-mod injection;
-mod misc;
-mod module;
 mod offsets;
 mod process;
 mod thread;
@@ -34,7 +27,6 @@ pub use data::*;
 pub use driver::*;
 pub use injection::*;
 pub use misc::*;
-pub use module::*;
 pub use network::*;
 pub use process::*;
 pub use registry::*;

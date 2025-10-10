@@ -14,7 +14,7 @@ mod callback;
 
 use core::sync::atomic::Ordering;
 use spin::{Mutex, lazy::Lazy};
-use shadow_core::{uni, error::ShadowError, network, Network};
+use shadow_core::{uni, error::ShadowError, network};
 use wdk_sys::{*, ntddk::*, _MODE::KernelMode};
 
 #[cfg(not(feature = "mapper"))]
@@ -203,7 +203,7 @@ pub unsafe extern "C" fn driver_unload(driver_object: *mut DRIVER_OBJECT) {
     log::info!("Unloading driver");
 
     if network::HOOK_INSTALLED.load(Ordering::Relaxed) {
-        Network::uninstall_hook();
+        network::uninstall_hook();
         let mut interval = LARGE_INTEGER {
             QuadPart: -50 * 1000_i64 * 1000_i64,
         };

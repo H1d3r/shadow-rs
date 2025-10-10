@@ -1,12 +1,17 @@
+use core::marker::PhantomData;
 use alloc::{
     string::{String, ToString},
     vec::Vec,
 };
-use spin::{lazy::Lazy, Mutex, MutexGuard};
-use wdk_sys::{NTSTATUS, STATUS_DUPLICATE_OBJECTID, STATUS_SUCCESS, STATUS_UNSUCCESSFUL};
 
 use common::structs::TargetRegistry;
-use core::marker::PhantomData;
+use spin::{lazy::Lazy, Mutex, MutexGuard};
+use wdk_sys::{
+    NTSTATUS, 
+    STATUS_DUPLICATE_OBJECTID, 
+    STATUS_SUCCESS, 
+    STATUS_UNSUCCESSFUL
+};
 
 /// Callback module
 pub mod callback;
