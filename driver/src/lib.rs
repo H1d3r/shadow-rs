@@ -57,7 +57,7 @@ pub unsafe extern "system" fn driver_entry(
     kernel_log::KernelLogger::init(log::LevelFilter::Info).expect("Failed to initialize logger");
 
     #[cfg(feature = "mapper")] {
-        use shadowx::IoCreateDriver;
+        use shadow_core::IoCreateDriver;
 
         const DRIVER_NAME: &str = "\\Driver\\shadow";
         let mut driver_name = uni::str_to_unicode(DRIVER_NAME).to_unicode();
